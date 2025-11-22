@@ -5,27 +5,26 @@
 
 # Unique ID of this mod. Pick something long enough that it'll never be the same as any other mod.
 # The name displayed in the mod management menu is separate from this so this doesn't need to be human readable.
-id = "mm_recomp_mod_template"
+id = "VDSInfiniteDekuHopping"
 
 # Version of this mod.
 version = "1.0.0"
 
 # The name that will show up for this mod in the mod menu. This should be human readable.
-display_name = "Always Spin Attack"
+display_name = "Infinite Deku Hops"
 
 # The description that will show up when this mod is displayed in the mod menu. This should be human readable.
 description =  """
-This is an example mod for Majora's Mask: Recompiled that can be used as a template for creating mods. \
-When this mod is enabled, you will always perform a quickspin when swinging your sword.
+This mod allows Deku Link to hop on water infinitely, or optionally less than infinitely (maybe) \
 
-For more details, see https://github.com/Zelda64Recomp/MMRecompModTemplate."""
+Embrace your inner rock, and skip, deku boy."""
 
 # A short description that will show up in this mod's entry in the mod list. This should be human readable and kept short
 # to prevent it from being cut off due to the limited space.
-short_description = "Always perform a quickspin when swinging your sword."
+short_description = "Allows Deku to hop infinitely."
 
 # Authors of this mod.
-authors = [ "Your name here" ]
+authors = [ "VenDoesStuff" ]
 
 # ID of the target recomp game.
 game_id = "mm"
@@ -59,7 +58,7 @@ native_libraries = [
 elf_path = "build/mod.elf"
 
 # Output mod filename.
-mod_filename = "mm_recomp_mod_template"
+mod_filename = "InfiniteDekuHopping"
 
 # Reference symbol files.
 func_reference_syms_file = "Zelda64RecompSyms/mm.us.rev1.syms.toml"
