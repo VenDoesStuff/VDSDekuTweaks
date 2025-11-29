@@ -1,12 +1,17 @@
 #include "DAH_header.h"
+#include "recompconfig.h"
 
 void Player_Action_54(Player* this, PlayState* play);
-bool isDekuSwimming = false;
+
+enum config_options_swimming {
+    CONFIG_TRUE,
+    CONFIG_FALSE,
+};
 
 bool DekuDive(CONDITION_PARAMETERS) {
-    if ((this->transformation == PLAYER_FORM_DEKU) && (this->stateFlags1 & PLAYER_STATE1_8000000)) {
+    if ((recomp_get_config_u32("Allow_Deku_Swim") == CONFIG_TRUE) && (this->transformation == PLAYER_FORM_DEKU) && (this->stateFlags1 & PLAYER_STATE1_8000000)) {
         *doAction = DO_ACTION_DIVE;
-        return true;
+        return true; 
     }
     
     return false;

@@ -12,7 +12,7 @@ RECOMP_HOOK ("func_808373F8") void InfiniteHops(PlayState* play, Player* this, u
     f32 speedXZ;
     
     // Make it so holding A stops hops counter from decreasing by raising it
-    if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_Z)){
+    if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_A)){
         this->remainingHopsCounter++;
     }
     if (this->remainingHopsCounter > 5){
@@ -178,19 +178,19 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
                         } else {
                             play->nextEntrance = ENTRANCE(TOURIST_INFORMATION, 1);
                         }
-                        // play->transitionTrigger = TRANS_TRIGGER_START;
-                        // play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
-                        // this->stateFlags1 |= PLAYER_STATE1_200;
-                        // Audio_PlaySfx(NA_SE_SY_DEKUNUTS_JUMP_FAILED);
+                        play->transitionTrigger = TRANS_TRIGGER_START;
+                        play->transitionType = TRANS_TYPE_FADE_BLACK_FAST;
+                        this->stateFlags1 |= PLAYER_STATE1_200;
+                        Audio_PlaySfx(NA_SE_SY_DEKUNUTS_JUMP_FAILED);
                     } else if ((this->unk_3CF == 0) &&
                                ((play->sceneId == SCENE_30GYOSON) || (play->sceneId == SCENE_31MISAKI) ||
                                 (play->sceneId == SCENE_TORIDE))) {
-                        // func_80169EFC(play);
-                        // func_808345C8();
-                    } //else {
-                    //     Player_SetAction(play, this, Player_Action_1, 0);
-                    //     this->stateFlags1 |= PLAYER_STATE1_20000000;
-                    // }
+                        func_80169EFC(play);
+                        func_808345C8();
+                    } else {
+                        Player_SetAction(play, this, Player_Action_1, 0);
+                        this->stateFlags1 |= PLAYER_STATE1_20000000;
+                    }
                 if (recomp_get_config_u32("Allow_Deku_Swim") == CONFIG_TRUE) {
                     if ((this->actor.depthInWater - this->ageProperties->unk_2C)) {
                         func_8083B8D0(play, this);
@@ -205,11 +205,8 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
                     }
 
                 } else {
-                        func_808345C8();
-                        Player_SetAction(play, this, Player_Action_1, 0);
-                        this->stateFlags1 |= PLAYER_STATE1_20000000;
                         func_8083B8D0(play, this);
-                    }  
+                }
                 }
             } else if (!(this->stateFlags1 & PLAYER_STATE1_8000000) ||
                         (((this->currentBoots < PLAYER_BOOTS_ZORA_UNDERWATER) ||
