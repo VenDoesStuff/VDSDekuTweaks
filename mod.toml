@@ -5,23 +5,24 @@
 
 # Unique ID of this mod. Pick something long enough that it'll never be the same as any other mod.
 # The name displayed in the mod management menu is separate from this so this doesn't need to be human readable.
-id = "VDSInfiniteDekuHopping"
+id = "VDSDekuTweaks"
 
 # Version of this mod.
 version = "1.0.0"
 
 # The name that will show up for this mod in the mod menu. This should be human readable.
-display_name = "Infinite Deku Hops"
+display_name = "Ventus's Deku Tweaks"
 
 # The description that will show up when this mod is displayed in the mod menu. This should be human readable.
 description =  """
-This mod allows Deku Link to hop on water infinitely, or optionally less than infinitely (maybe) \
+This mod tweaks Deku form to make it a bit more useful to use.
 
-Embrace your inner rock, and skip, deku boy."""
+Changes include making Deku swim instead of voiding out in water, Allowing Deku & its elegy statue to use small floor switches,
+and allowing Deku to hop infinitely without stopping by holding down Z."""
 
 # A short description that will show up in this mod's entry in the mod list. This should be human readable and kept short
 # to prevent it from being cut off due to the limited space.
-short_description = "Allows Deku to hop infinitely."
+short_description = "Many tweaks that make Deku better."
 
 # Authors of this mod.
 authors = [ "VenDoesStuff" ]
