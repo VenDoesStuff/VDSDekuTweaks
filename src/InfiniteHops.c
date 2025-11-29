@@ -3,20 +3,16 @@
 #include "recomputils.h"
 #include "recompconfig.h"
 #include "z64player.h"
+#include "z64interface.h"
 
 // TODO LIST:
-// Make the A button say 'Dive' when swimming.
-// Fix Dekus speed when Diving.
-// Fix Deku instantly starting to hop again after landing in Poison Water.
-// Fix Dekus dive timer so that he cant dive forever.
-// Try to prevent Deku from hopping after diving (optional)
 
 RECOMP_HOOK ("func_808373F8") void InfiniteHops(PlayState* play, Player* this, u16 sfxId) {
     f32 speed;
     f32 speedXZ;
     
     // Make it so holding A stops hops counter from decreasing by raising it
-    if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_A)){
+    if (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_Z)){
         this->remainingHopsCounter++;
     }
     if (this->remainingHopsCounter > 5){
@@ -24,7 +20,7 @@ RECOMP_HOOK ("func_808373F8") void InfiniteHops(PlayState* play, Player* this, u
     }
 
     // Raise minimum hopping speed
-    if (this->speedXZ < 8.0f) {
+    if ((this->stateFlags1 != PLAYER_STATE1_8000000) && (this->speedXZ < 8.0f)) {
         this->speedXZ = 8.0f;
     }
     
@@ -106,6 +102,10 @@ void Player_Action_CsAction(Player* this, PlayState* play);
 void Player_Anim_PlayOnce(PlayState* play, Player* this, PlayerAnimationHeader* anim);
 u32 sPlayerTouchedWallFlags;
 void func_8082DAD4(Player* this);
+Actor* interactRangeActor;
+
+void Player_UpdateInterface(PlayState* play, Player* this);
+
 
 Vec3f D_8085D154 = { 0.0f, 0.0f, 100.0f };
 
@@ -123,6 +123,10 @@ extern PlayerAnimationHeader gPlayerAnim_link_normal_150step_up;
 extern PlayerAnimationHeader gPlayerAnim_link_normal_100step_up;
 extern PlayerAnimationHeader gPlayerAnim_link_swimer_wait2swim_wait;
 extern PlayerAnimationHeader gPlayerAnim_link_swimer_land2swim_wait;
+extern PlayerAnimationHeader gPlayerAnim_link_swimer_swim_get;
+extern PlayerAnimationHeader gPlayerAnim_link_swimer_swim_deep_end;
+DoAction doActionA;
+
 
 typedef struct {
     /* 0x0 */ PlayerAnimationHeader* unk_0;
@@ -133,6 +137,7 @@ typedef struct {
 extern struct_8085C2A4 D_8085C2A4[];
 
 RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
+    s32 sp38;
     f32 sp1C = this->actor.depthInWater - this->ageProperties->unk_2C;
 
     if (sp1C < 0.0f) {
@@ -183,13 +188,16 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
                     // }
                     func_8083B8D0(play, this);
                     if ((this->actor.depthInWater - this->ageProperties->unk_2C)) {
+                        (this->invincibilityTimer = 10);
                         Player_SetAction(play, this, Player_Action_54, 0);
                         Player_Anim_PlayOnceMorph(play, this,
-                                      (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)
-                                          ? &gPlayerAnim_link_swimer_wait2swim_wait
-                                          : &gPlayerAnim_link_swimer_land2swim_wait);
+                        (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND)
+                        ? &gPlayerAnim_link_swimer_swim_get
+                        : &gPlayerAnim_link_swimer_swim_deep_end);
+                        Player_AnimSfx_PlayVoice(this, NA_SE_VO_LI_BREATH_DRINK);
                         (this->stateFlags1 |= PLAYER_STATE1_8000000);
                     }
+
                 }
             } else if (!(this->stateFlags1 & PLAYER_STATE1_8000000) ||
                         (((this->currentBoots < PLAYER_BOOTS_ZORA_UNDERWATER) ||
@@ -201,7 +209,7 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
                        (Player_Action_55 != this->actionFunc) && (Player_Action_56 != this->actionFunc))) {
               func_8083B930(play, this);
              }
-         } else if ((this->stateFlags1 & PLAYER_STATE1_8000000) &&
+        } else if ((this->stateFlags1 & PLAYER_STATE1_8000000) &&
                     (this->actor.depthInWater < this->ageProperties->unk_24) &&
                     (((Player_Action_56 != this->actionFunc) && !(this->stateFlags3 & PLAYER_STATE3_8000)) ||
                      (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND))) {
@@ -213,11 +221,11 @@ RECOMP_PATCH void func_8083BB4C(PlayState* play, Player* this) {
     }
 }
 
+
 // Patches this function to only start if A is held. Points to hopping function.
 // Having this fixes Dekus controls when Swimming. Dont ask me how.
 
 RECOMP_PATCH s32 func_80850854(PlayState* play, Player* this) {
-
     if ((this->transformation == PLAYER_FORM_DEKU) && (this->remainingHopsCounter != 0) &&
         (gSaveContext.save.saveInfo.playerData.health != 0) && (sControlStickMagnitude != 0.0f) &&
         (CHECK_BTN_ANY(CONTROLLER1(&play->state)->cur.button, BTN_A))) {
@@ -226,84 +234,87 @@ RECOMP_PATCH s32 func_80850854(PlayState* play, Player* this) {
     }
     return false;
 }
+
 // Main function that handles hopping.
 
 // Patched to check if Deku is Swimming before starting the hopping function proper.
 RECOMP_PATCH s32 func_808373F8(PlayState* play, Player* this, u16 sfxId) {
-
     PlayerAnimationHeader* anim;
     f32 speed;
     s16 yawDiff = this->yaw - this->actor.shape.rot.y;
 
-if (this->stateFlags1 != PLAYER_STATE1_8000000) {
+    if (this->stateFlags1 != PLAYER_STATE1_8000000) {
+        if ((IREG(66) / 100.0f) < this->speedXZ) {
+            speed = IREG(67) / 100.0f;
+        } else {
+            speed = (IREG(68) / 100.0f + (IREG(69) * this->speedXZ) / 1000.0f);
 
-    if ((IREG(66) / 100.0f) < this->speedXZ) {
-        speed = IREG(67) / 100.0f;
-    } else {
-        speed = (IREG(68) / 100.0f + (IREG(69) * this->speedXZ) / 1000.0f);
-
-        if ((this->transformation == PLAYER_FORM_DEKU) && (speed < 8.0f)) {
-            speed = 8.0f;
-        } else if (speed < 5.0f) {
-            speed = 5.0f;
-        }
-    }
-
-    if ((ABS_ALT(yawDiff) >= 0x1000) || (this->speedXZ <= 4.0f)) {
-        anim = &gPlayerAnim_link_normal_jump;
-    } else {
-        s32 var_v1;
-
-        if ((this->transformation != PLAYER_FORM_DEKU) &&
-            ((sPrevFloorProperty == FLOOR_PROPERTY_1) || (sPrevFloorProperty == FLOOR_PROPERTY_2))) {
-            if (sPrevFloorProperty == FLOOR_PROPERTY_1) {
-                var_v1 = 4;
-            } else {
-                var_v1 = 5;
+            if ((this->transformation == PLAYER_FORM_DEKU) && (speed < 8.0f)) {
+                speed = 8.0f;
+            } else if (speed < 5.0f) {
+                speed = 5.0f;
             }
-
-            func_80834D50(play, this, D_8085C2A4[var_v1].unk_0, speed, ((var_v1 == 4) ? NA_SE_VO_LI_SWORD_N : sfxId));
-            this->av2.actionVar2 = -1;
-            this->stateFlags2 |= PLAYER_STATE2_80000;
-            this->av1.actionVar1 = var_v1;
-            return true;
-        }
-        anim = &gPlayerAnim_link_normal_run_jump;
-    }
-
-    // Deku hopping
-
-    if (this->transformation == PLAYER_FORM_DEKU) {
-        speed *= 0.3f + ((5 - this->remainingHopsCounter) * 0.18f);
-        if (speed < 4.0f) {
-            speed = 4.0f;
         }
 
-        if ((this->actor.depthInWater > 0.0f) && (this->remainingHopsCounter != 0)) {
-            this->actor.world.pos.y += this->actor.depthInWater;
-            func_80834D50(play, this, anim, speed, NA_SE_NONE);
-            this->av2.actionVar2 = 1;
-            this->stateFlags3 |= PLAYER_STATE3_200000;
-            Player_PlaySfx(this, (NA_SE_PL_DEKUNUTS_JUMP5 + 1 - this->remainingHopsCounter));
-            Player_AnimSfx_PlayVoice(this, sfxId);
-            this->remainingHopsCounter--;
-            if (this->remainingHopsCounter == 0) {
+        if ((ABS_ALT(yawDiff) >= 0x1000) || (this->speedXZ <= 4.0f)) {
+            anim = &gPlayerAnim_link_normal_jump;
+        } else {
+            s32 var_v1;
+
+            if ((this->transformation != PLAYER_FORM_DEKU) &&
+                ((sPrevFloorProperty == FLOOR_PROPERTY_1) || (sPrevFloorProperty == FLOOR_PROPERTY_2))) {
+                if (sPrevFloorProperty == FLOOR_PROPERTY_1) {
+                    var_v1 = 4;
+                } else {
+                    var_v1 = 5;
+                }
+
+                func_80834D50(play, this, D_8085C2A4[var_v1].unk_0, speed, ((var_v1 == 4) ? NA_SE_VO_LI_SWORD_N : sfxId));
+                this->av2.actionVar2 = -1;
                 this->stateFlags2 |= PLAYER_STATE2_80000;
-                // Makes Deku spin on last hop.
-                func_808373A4(play, this);
+                this->av1.actionVar1 = var_v1;
+                return true;
+            }
+            anim = &gPlayerAnim_link_normal_run_jump;
+        }
+
+        // Deku hopping
+
+        if (this->transformation == PLAYER_FORM_DEKU) {
+            speed *= 0.3f + ((5 - this->remainingHopsCounter) * 0.18f);
+            if (speed < 4.0f) {
+                speed = 4.0f;
             }
 
-            return true;
+            if ((this->actor.depthInWater > 0.0f) && (this->remainingHopsCounter != 0)) {
+                this->actor.world.pos.y += this->actor.depthInWater;
+                func_80834D50(play, this, anim, speed, NA_SE_NONE);
+                this->av2.actionVar2 = 1;
+                this->stateFlags3 |= PLAYER_STATE3_200000;
+                Player_PlaySfx(this, (NA_SE_PL_DEKUNUTS_JUMP5 + 1 - this->remainingHopsCounter));
+                Player_AnimSfx_PlayVoice(this, sfxId);
+                this->remainingHopsCounter--;
+                if (this->remainingHopsCounter == 0) {
+                    this->stateFlags2 |= PLAYER_STATE2_80000;
+                    // Makes Deku spin on last hop.
+                    func_808373A4(play, this);
+                }
+
+                return true;
+            }
+
+            if (this->actor.velocity.y > 0.0f) {
+                sfxId = NA_SE_NONE;
+            }
         }
 
-        if (this->actor.velocity.y > 0.0f) {
-            sfxId = NA_SE_NONE;
-        }
+        func_80834D50(play, this, anim, speed, sfxId);
+        this->av2.actionVar2 = 1;
+
+        return true;
     }
-
-    func_80834D50(play, this, anim, speed, sfxId);
-    this->av2.actionVar2 = 1;
-
-    return true;
 }
+
+RECOMP_PATCH void Player_Action_60(Player* this, PlayState* play) {
+    
 }
