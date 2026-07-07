@@ -5,7 +5,6 @@
 #include "z64player.h"
 #include "z64interface.h"
 
-// TODO LIST:
 
 RECOMP_HOOK ("func_808373F8") void InfiniteHops(PlayState* play, Player* this, u16 sfxId) {
     f32 speed;
@@ -19,8 +18,8 @@ RECOMP_HOOK ("func_808373F8") void InfiniteHops(PlayState* play, Player* this, u
         this->remainingHopsCounter = 5;
     }
 
-    // Raise minimum hopping speed
-    if ((this->stateFlags1 != PLAYER_STATE1_8000000) && (this->speedXZ < 8.0f)) {
+    // Raise minimum hopping and jumping speeds
+    if ((this->stateFlags1 != PLAYER_STATE1_8000000) && (this->speedXZ < 8.0f) && (this->transformation == PLAYER_FORM_DEKU)) {
         this->speedXZ = 8.0f;
     }
     
@@ -91,7 +90,7 @@ void func_8082DC64(PlayState* play, Player* this);
 s32 func_80837730(PlayState* play, Player* this, f32 arg2, s32 scale);
 void Player_Anim_PlayOnceMorph(PlayState* play, Player* this, PlayerAnimationHeader* anim);
 f32 sControlStickMagnitude;
-FloorProperty sPrevFloorProperty;
+extern FloorProperty sPrevFloorProperty;
 f32 sPlayerYDistToFloor;
 Input* sPlayerControlInput;
 void func_80834D50(PlayState* play, Player* this, PlayerAnimationHeader* anim, f32 speed, u16 sfxId);
@@ -247,12 +246,12 @@ RECOMP_PATCH s32 func_80850854(PlayState* play, Player* this) {
 // Main function that handles hopping.
 
 // Patched to check if Deku is Swimming before starting the hopping function proper.
+
 RECOMP_PATCH s32 func_808373F8(PlayState* play, Player* this, u16 sfxId) {
     PlayerAnimationHeader* anim;
     f32 speed;
     s16 yawDiff = this->yaw - this->actor.shape.rot.y;
 
-    if (this->stateFlags1 != PLAYER_STATE1_8000000) {
         if ((IREG(66) / 100.0f) < this->speedXZ) {
             speed = IREG(67) / 100.0f;
         } else {
@@ -288,7 +287,7 @@ RECOMP_PATCH s32 func_808373F8(PlayState* play, Player* this, u16 sfxId) {
         }
 
         // Deku hopping
-
+    if (this->stateFlags1 != PLAYER_STATE1_8000000) {
         if (this->transformation == PLAYER_FORM_DEKU) {
             speed *= 0.3f + ((5 - this->remainingHopsCounter) * 0.18f);
             if (speed < 4.0f) {
